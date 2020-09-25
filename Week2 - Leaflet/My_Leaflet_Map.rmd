@@ -1,0 +1,77 @@
+---
+title: "Italy Map - Leaflet"
+output:
+  html_document: default
+  date: '`r format(Sys.time(), "%d %B, %Y - %H:%M")`'
+  pdf_document: null
+  toc: yes
+always_allow_html: yes
+---
+
+```{r setup, include=TRUE, echo = FALSE, warning= FALSE, message=FALSE,results = 'asis'}
+knitr::opts_chunk$set(echo = TRUE)
+library(knitr)
+
+library(dplyr)
+#Librerie per gestione rappresentazione Geografica
+library(leaflet)
+library(geosphere)
+library(RColorBrewer)
+
+library(geojson)
+library(geojsonio)
+
+
+#install.packages("leaflet.minicharts")
+library(leaflet.minicharts)
+```
+
+# Italy Region Population Density
+## `r Sys.Date()`
+
+```{r geografia, include=TRUE, echo = FALSE, warning= FALSE, message=FALSE,results = 'asis'}
+# 
+Italy <- "https://raw.githubusercontent.com/stefanocudini/leaflet-geojson-selector/master/examples/italy-regions.json"
+
+# read as text file
+Italydoc <- readLines(Italy)
+
+# write out as a temp file and read
+tmpdir = tempdir()
+write(Italydoc, file = paste0(tmpdir,"ITALYgeo.json"))
+
+ITALYRegion <- geojson_read(paste0(tmpdir,"ITALYgeo.json"), what = "sp")
+
+ITALYRegion@data <- ITALYRegion@data %>% mutate(Regione = gsub(" ","",name ) ) %>% 
+  mutate( name  = gsub("[[:punct:]]","",name ) ) %>% mutate(Regione = gsub(" ","",name ) )
+
+
+LivelliItalia <- as.data.frame( cbind(Regione = c('piemonte', 'valledaosta', 'lombardia', 'trentinoaltoadigesudtirol', 'veneto', 'friuliveneziagiulia', 'liguria', 'emiliaromagna', 'toscana', 'umbria', 'marche', 'lazio', 'abruzzo', 'molise', 'campania', 'puglia', 'basilicata', 'calabria', 'sicilia', 'sardegna'),
+                                Pop = c('4375865', '126202', '10036258', '1067648', '4905037', '1215538', '1556981', '4452629', '3736968', '884640', '1531753', '5896693', '1315196', '308493', '5826860', '4048242', '567118', '1956687', '5026989', '1648176') ) )
+
+ITALYRegion@data <- merge(ITALYRegion, LivelliItalia, by.x="Regione", by.y="Regione", all.x = TRUE)
+ITALYRegion@data <- ITALYRegion@data %>% mutate(Pop = as.numeric(as.character(Pop)) , area = as.numeric(area) ) %>% mutate(density = Pop/area ) %>% mutate(Level=  cut(density, breaks=4, labels = c("Level.1","Level.2","Level.3","Level.4")))
+
+colori.base2 <- c( "lightgreen","yellow", "orange","red" )
+beatCol <- colorFactor(palette =colori.base2, c("Level.1","Level.2","Level.3","Level.4"),  domain=ITALYRegion@data$Level)
+
+
+ITALYRegion@data <- ITALYRegion@data %>% mutate(color= beatCol( ITALYRegion$Level))
+ITALYRegion@data <- ITALYRegion@data %>% arrange(id)
+
+mIta <- leaflet(data = ITALYRegion ) %>%
+  setView(lng =12.009035,  lat = 43.417657, zoom=6) %>% 
+  addTiles()%>%
+ leaflet::addLegend(pal = beatCol, values = ~ITALYRegion$Level, opacity = 0.7,
+                   position = 'bottomright', 
+                   title = paste0("Population Density per Region")) %>% 
+  addPolygons( fillColor = ~ITALYRegion$color,
+  weight = 2,
+  opacity = 1,
+  color = "white",
+  dashArray = "3",
+  fillOpacity = 0.4)
+
+mIta
+
+```
