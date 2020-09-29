@@ -2,6 +2,7 @@
 title: "Workforce Planning - Call Center - Montecarlo Simulation App"
 subtitle: "JHU - Coursera - Developing Data Product - Final Assignment"
 output: ioslides_presentation
+css: styles.css
 smaller: true
 date: '`r format(Sys.time(), "%d %B, %Y - %H:%M")`'
 author: "Daniele De Faveri"

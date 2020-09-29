@@ -1,0 +1,35 @@
+.backdrop {
+        background: #2899A6;
+}
+p{
+        color: #232b2b;
+}
+
+h1,h2,h3,h4,h5,h6,.h1,.h2,.h3,.h4,.h5,.h6
+{
+        color: #232b2b;
+}
+
+li{
+        color: #232b2b;
+}
+
+a{
+        color: #b2b2b2;
+                border-bottom-color: #b2b2b2;
+                
+}
+
+a:hover {
+        color: #000;
+                border-bottom: 2px solid #000;
+}
+
+slides > slide:not(.nobackground):after {
+        color: #b2b2b2;
+}
+
+slides > slide {
+        color: #232b2b;
+}
+
