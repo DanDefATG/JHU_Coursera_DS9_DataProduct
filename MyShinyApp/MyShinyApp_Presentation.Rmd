@@ -16,6 +16,7 @@ used to guarantee a desired Service Level.
 The Service Level is defined as the percentage of calls aswered under a target level of seconds.
 
 The web application is hosted on the link below:
+https://ddfmyshinyapps.shinyapps.io/WorkforcePlanning/
 
 The app is inspired by the R-Blogger Article of Peter Prevos https://www.r-bloggers.com/2018/07/call-centre-workforce-planning-using-erlang-c-in-r-language/
 
