@@ -1,0 +1,117 @@
+---
+title: "Workforce Planning - Call Center - Montecarlo Simulation App"
+subtitle: "JHU - Coursera - Developing Data Product - Final Assignment"
+output: ioslides_presentation
+smaller: true
+date: '`r format(Sys.time(), "%d %B, %Y - %H:%M")`'
+author: "Daniele De Faveri"
+---
+
+
+## Overview of the app {.smaller}
+This Presentation Shows the details of the Workforce Planning for Call Center Montecarlo Simulation App for the final assignment of the John Hopkins University Developing Data Product Course on Coursera.
+
+This app is design to simulate a call center operations to allow the identification of the optimum number of Agets to be 
+used to guarantee a desired Service Level.
+The Service Level is defined as the percentage of calls aswered under a target level of seconds.
+
+The web application is hosted on the link below:
+
+The app is inspired by the R-Blogger Article of Peter Prevos https://www.r-bloggers.com/2018/07/call-centre-workforce-planning-using-erlang-c-in-r-language/
+
+## Parameters for Workforce Planning {.smaller}
+Is it possible to modify the following parameters to generate different simulations:
+
+- Number of Calls per Hours (Average & SD) this is the expected number of calls received by the call center within an hour
+- Call Duration in seconds (Average & SD) this is the expected duration in second of a call to the call center
+- Max Time to Answer a call (in Seconds) this is the required time to answer the call do be considered in the service level
+- Target Percentage of Call Answered in time This is the target minimum percentage of call needed to be answered within the max seconds to answer a call
+- Montecarlo Simulation Loops This define the number of montecarlo loop in the simulation
+
+## Erlang C {.smaller}
+We use the Erlang C formula to identify the optimal number of Agents.
+```{r setup, include=TRUE, echo = FALSE, warning= FALSE, message=FALSE,results = 'asis'}
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+library(ggplot2)
+
+  intensity <- function(rate, duration, interval = 60) {
+      (rate / interval) * duration
+  }
+
+  erlang_c <- function(agents, rate, duration, interval = 60) {
+      int <- intensity(rate, duration, interval)
+      erlang_b_inv <- 1
+      for (i in 1:agents) {
+          erlang_b_inv <- 1 + erlang_b_inv * i / int
+      }
+      erlang_b <- 1 / erlang_b_inv
+      agents * erlang_b / (agents - int * (1 - erlang_b))
+  }
+
+  service_level <- function(agents, rate, duration, target, interval = 60) {
+      pw <- erlang_c(agents, rate, duration, interval)
+      int <- intensity(rate, duration, interval)
+      1 - (pw * exp(-(agents - int) * (target / duration)))
+  }
+
+  resource <- function(rate, duration, target, gos_target, interval = 60) {
+      agents <- round(intensity(rate, duration, interval) + 1)
+      gos <- service_level(agents, rate, duration, target, interval)
+      while (gos < gos_target * (gos_target > 1) / 100) {
+          agents <- agents + 1
+          gos <- service_level(agents, rate, duration, target, interval)
+      }
+      return(c(agents, gos))
+  }
+
+```
+We use the spply to shows the optimum number of Agents
+```{r Erlang, include=TRUE, echo = TRUE, warning= FALSE, message=FALSE,results = 'asis', fig.width=8, fig.height=8}
+service <- data.frame(agents = 10:20,
+ GoS = sapply(10:20, service_level, rate = 100, duration = 3, target = 20 / 60, interval = 30))
+```
+```{r Erlang_chart, include=TRUE, echo = FALSE, warning= FALSE, message=FALSE,results = 'asis', fig.width=4, fig.height=4}
+  ggplot(service, aes(agents, GoS)) +
+    geom_line() +
+    scale_x_continuous(breaks = 10:20) + 
+    scale_y_continuous(labels = scales::percent) +
+    geom_hline(yintercept = 0.8, col = "blue") +
+    theme_bw(base_size = 10) + 
+    labs(title = "Call Centre Simulation",
+         subtitle = "Erlang-C Formula")
+
+```
+
+## Montecarlo Simulation {.smaller}
+We use the montecarlo simulation to create the montecarlo distribution and to find the likelyhood of be in the Service Level.
+```{r montecarlo, include=TRUE, echo = FALSE, warning= FALSE, message=FALSE,results = 'asis', fig.width=4, fig.height=4}
+#INTENSITY:  Determines intensity in Erlangs based on the rate of calls per interval, the total call handling time and the interval time in minutes. All functions default to an interval time of sixty minutes.
+intensity_mc <- function(rate_m, rate_sd, duration_m, duration_sd, interval = 60, sims = 1000) { 
+    (rnorm(sims, rate_m, rate_sd) / (60 * interval)) * rnorm(sims, duration_m, duration_sd) }
+
+#ERKANG Calculates The Erlang C formula using the number of agents and the variables that determine intensity.
+erlang_c_mc <- function(agents, rate_m, rate_sd, duration_m, duration_sd, interval = 60) {
+    int <- intensity_mc(rate_m, rate_sd, duration_m, duration_sd, interval)
+    erlang_b_inv <- 1
+    for (i in 1:agents) {
+        erlang_b_inv <- 1 + erlang_b_inv * i / int
+    }
+    erlang_b <- 1 / erlang_b_inv
+    agents * erlang_b / (agents - int * (1 - erlang_b))
+}
+
+#SERVICE LEVEL Calculates the service level. The inputs are the same as above plus the period for the Grade of Service in seconds.
+service_level_mc <- function(agents, rate_m, rate_sd, duration_m, duration_sd, target, interval = 60, sims = 1000) {
+    pw <- erlang_c_mc(agents, rate_m, rate_sd, duration_m, duration_sd, interval)
+    int <- intensity_mc(rate_m, rate_sd, duration_m, duration_sd, interval, sims)
+    1 - (pw * exp(-(agents - int) * (target / rnorm(sims, duration_m, duration_sd))))
+}
+
+```
+
+```{r montecarlo_out, include=TRUE, echo = TRUE, warning= FALSE, message=FALSE,results = 'asis', fig.width=4, fig.height=4}
+ service_level_mc(15, 100, 10, 180, 20, 20, 30, sims = 1000) %>% quantile(c(.05, .5, .95))
+```
+
+With this exemple parameters the quantile shows the 5%, 50% and 95% service Level
