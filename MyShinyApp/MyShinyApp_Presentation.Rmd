@@ -19,6 +19,9 @@ The Service Level is defined as the percentage of calls aswered under a target l
 The web application is hosted on the link below:
 https://ddfmyshinyapps.shinyapps.io/WorkforcePlanning/
 
+The code is shared on github:
+https://github.com/DanDefATG/JHU_Coursera_DS9_DataProduct/tree/master/MyShinyApp
+
 The app is inspired by the R-Blogger Article of Peter Prevos https://www.r-bloggers.com/2018/07/call-centre-workforce-planning-using-erlang-c-in-r-language/
 
 ## Parameters for Workforce Planning {.smaller}
